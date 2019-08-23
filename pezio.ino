@@ -17,38 +17,83 @@ Arduino 1.6.7
 ******************************************************************************/
 const int PIEZO_PIN = A0; // Piezo output
 int LED = 2; //the pin we connect the LED
+int LED_LIGHT_HIT = 11; //the pin we connect the LED
+int flickerInterval = 100;
+unsigned long startFlickerTime = 0;
 
-int LED2 = 11; //the pin we connect the LED
+unsigned long lastLightHit = 0;
+unsigned long lastHardHit = 0;
+unsigned long timeToReactToHit = 1500;
 
+boolean areFlickering = false;
+boolean reactingToHit = false;
+int tonePlayTime = 500;
+int vibrationLevel = 0;
 void setup() 
 {
   Serial.begin(9600);
    pinMode(LED, OUTPUT); //set the LED pin as OUTPUT
-   pinMode(LED2, OUTPUT); //set the LED pin as OUTPUT
+   pinMode(LED_LIGHT_HIT, OUTPUT); //set the LED pin as OUTPUT
 }
 
 void loop() 
 {
+  
   // Read Piezo ADC value in, and convert it to a voltage
-  int piezoADC = analogRead(PIEZO_PIN);
-  float piezoV = piezoADC / 1023.0 * 5.0;
-  //Serial.println(piezoV); // Print the voltage.
-  Serial.println(piezoADC);
-  if(piezoADC > 9){
+  if(!reactingToHit){
+    vibrationLevel = analogRead(PIEZO_PIN);
+    // float piezoV = vibrationLevel / 1023.0 * 5.0;
+    //Serial.println(piezoV); // Print the voltage.
+     // Serial.println(vibrationLevel);
+  }
+  
+  if(vibrationLevel > 9){
+    // if not currently reacting to a hit read the time (i.e. it's a new hit)
+    if(!reactingToHit){
+      lastLightHit = millis();
+    }
+    reactingToHit = true;
     //Serial.println("MORE THAN TWO");
-    digitalWrite(LED2, HIGH); //write 1 or HIGH to led pin
-    tone(10, 2000, 500);
-    delay(500);
-    tone(10, 5000, 500);
+    if(!areFlickering){
+      digitalWrite(LED_LIGHT_HIT, HIGH); //write 1 or HIGH to led pin
+      tone(10, 2000, 50);
+    }
     
-    if(piezoADC > 14){
+    
+    if(vibrationLevel > 14 && !areFlickering){
       //Serial.println("MORE THAN TWO");
       digitalWrite(LED, HIGH); //write 1 or HIGH to led pin
       
     }
-      delay(1500);
   }
-  digitalWrite(LED, LOW); //write 0 or LOW to led pin
-  digitalWrite(LED2, LOW); //write 0 or LOW to led pin
+
+  // see if time has run out for us to respond to hit
+  if(millis() - lastLightHit > timeToReactToHit){
+    // we've responded to the hit long enough
+    reactingToHit = false;
+    lastLightHit = 0;
+    
+  }
+  int mod = (millis()-lastLightHit)%100;
+
+  if(reactingToHit && mod ==0){
+    if(!areFlickering){
+     startFlickerTime = millis(); 
+    }
+    areFlickering=true;
+  }
+  if(areFlickering){
+    digitalWrite(LED, LOW); //write 0 or LOW to led pin
+    digitalWrite(LED_LIGHT_HIT, LOW); //write 0 or LOW to led pin
+  }
+  if(millis()-startFlickerTime > flickerInterval){
+    areFlickering = false;
+    startFlickerTime = 0;
+  }
+  if (!reactingToHit){
+    vibrationLevel = 0;
+    digitalWrite(LED, LOW); //write 0 or LOW to led pin
+    digitalWrite(LED_LIGHT_HIT, LOW); //write 0 or LOW to led pin
+  }
     
 }
