@@ -56,7 +56,7 @@ void loop()
     //Serial.println("MORE THAN TWO");
     if(!areFlickering){
       digitalWrite(LED_LIGHT_HIT, HIGH); //write 1 or HIGH to led pin
-      tone(10, 2000, 50);
+      tone(13, 2000, 50);
     }
     
     
